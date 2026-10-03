@@ -1,26 +1,32 @@
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 
-def parse_commits(result: str) -> list[dict[str, str]]:
+@dataclass(slots=True, frozen=True)
+class Commit:
+    sha: str
+    subject: str
+
+
+def parse_commits(result: str) -> list[Commit]:
     if not result.strip():
         return []
     
-    commits = []
-    for commit in result.splitlines():
-        parts = commit.split('\x1f', 1)
+    commits: list[Commit] = []
+
+    for line in result.splitlines():
+        parts = line.split('\x1f', 1)
         if len(parts) != 2:
-            raise ValueError(f"Invalid commit format: {commit}")
-        commits.append({
-            "sha": parts[0],
-            "subject": parts[1]
-            })
+            raise ValueError("Invalid commit format")
+        commit = Commit(sha = parts[0],subject = parts[1])
+        commits.append(commit)
 
     return commits
 
 
 
-def get_recent_commits(path: Path, n: int = 1) -> list[dict[str, str]]:
+def get_recent_commits(path: Path, n: int = 1) -> list[Commit]:
     git_dir = Path(path)
     if not git_dir.is_dir():
         raise NotADirectoryError
